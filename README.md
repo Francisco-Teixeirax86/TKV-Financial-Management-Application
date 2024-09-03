@@ -1,6 +1,6 @@
 # TKV-Financial-Management-Application
 # Project Overview
-The DADTKV Financial Management Application is a distributed, transactional key-value store system adapted into a financial transaction management app. This project demonstrates the implementation of a robust and secure backend using a distributed system architecture, combined with an intuitive front-end interface for managing financial transactions.
+The DADTKV Financial Management Application is a distributed, transactional key-value store system adapted into a financial transaction management app. This project demonstrates the implementation of a backend using a distributed system architecture, combined with an  front-end interface for managing financial transactions. This is a project developed as a form of me learning and aquiring new skills. Maybe it is ambitious but it's the way I gain motivation to learn.
 
 # Key Features
 - Distributed Key-Value Store: Implements a distributed system for storing and managing key-value pairs where each key represents an account, and the value represents the account balance.
@@ -29,3 +29,8 @@ Front-End
 Security
   - Authentication: JWT (JSON Web Tokens) for secure user authentication.
   - Encryption: TLS/SSL for secure communication between the client and server.
+
+Developed using Jet Brains IDE's and Linux Ubuntu.
+
+License
+This project is licensed under the MIT License - see the LICENSE file for details.
