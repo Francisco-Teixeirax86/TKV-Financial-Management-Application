@@ -89,6 +89,7 @@ func (s *Store) Withdraw(accountID string, amount float64) error {
 		return errors.New("insufficient funds")
 	}
 
+	s.accounts[accountID] -= amount
 	return nil
 }
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"backend/data"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -36,30 +37,51 @@ func main() {
 
 }
 
+// parseAmount validate the amount input
+func parseAmount(amountStr string) (float64, error) {
+
+	if amountStr == "" {
+		return 0, errors.New("amount is required")
+	}
+
+	amount, err := strconv.ParseFloat(amountStr, 64)
+	if err != nil {
+		return 0, errors.New("invalid amount format, it should be a float64")
+	}
+
+	if amount <= 0 {
+		return 0, errors.New("amount must be greater than 0")
+	}
+
+	return amount, nil
+}
+
 // depositHandler Handler for the deposit request
 func depositHandler(writer http.ResponseWriter, request *http.Request) {
 	accountID := request.URL.Query().Get("accountID")
-	amountStr := request.URL.Query().Get("amount")
-	if amountStr == "" || accountID == "" {
+
+	if accountID == "" {
 		http.Error(writer, "AccountID and Amount are required to update a balance", http.StatusBadRequest)
 		return
 	}
 
-	amount, err := strconv.ParseFloat(amountStr, 64)
+	amountStr := request.URL.Query().Get("amount")
+	amount, err := parseAmount(amountStr)
 
 	if err != nil {
-		http.Error(writer, "invalid amount", http.StatusInternalServerError)
+		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	err = store.Deposit(accountID, amount)
 	if err != nil {
-		http.Error(writer, "failed to update balance", http.StatusInternalServerError)
+		http.Error(writer, "failed to update balance", http.StatusBadRequest)
 		return
 	}
 
-	fmt.Fprintf(writer, "Account %s has been successfully updated with amoun %s", accountID, amount)
-
+	if _, err := fmt.Fprintf(writer, "Account %s has been successfully updated with amoun %s", accountID, amount); err != nil {
+		fmt.Printf("Error writing response: %s \n", err)
+	}
 }
 
 // getBalanceHandler Handler for the get balance request
@@ -76,44 +98,51 @@ func getBalanceHandler(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(writer, "Account %s, Balance %.2f \n", accountID, balance)
+	if _, err := fmt.Fprintf(writer, "Account %s, Balance %.2f \n", accountID, balance); err != nil {
+		fmt.Printf("Error writing response: %s \n", err)
+	}
+
 }
 
 func withdrawHandler(writer http.ResponseWriter, request *http.Request) {
 	accountID := request.URL.Query().Get("accountID")
-	amountStr := request.URL.Query().Get("amount")
 
-	if amountStr == "" || accountID == "" {
+	if accountID == "" {
 		http.Error(writer, "AccountID and Amount are required to withdraw a balance", http.StatusBadRequest)
 		return
 	}
 
-	amount, err := strconv.ParseFloat(amountStr, 64)
+	amountStr := request.URL.Query().Get("amount")
+	amount, err := parseAmount(amountStr)
 	if err != nil {
-		http.Error(writer, "invalid amount", http.StatusInternalServerError)
+		http.Error(writer, err.Error(), http.StatusBadRequest)
 	}
 
 	err = store.Withdraw(accountID, amount)
 	if err != nil {
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	fmt.Fprintf(writer, "Withrew %.2f from Account: %s \n", amount, accountID)
+	if _, err := fmt.Fprintf(writer, "Withrew %.2f from Account: %s \n", amount, accountID); err != nil {
+		fmt.Printf("Error writing response: %s \n", err)
+	}
+
 }
 
 func transferHandler(writer http.ResponseWriter, request *http.Request) {
 	fromAccountID := request.URL.Query().Get("fromAccountID")
 	toAccountID := request.URL.Query().Get("toAccountID")
-	amountStr := request.URL.Query().Get("amount")
 
-	if amountStr == "" || fromAccountID == "" || toAccountID == "" {
+	if fromAccountID == "" || toAccountID == "" {
 		http.Error(writer, "fromAccountID, toAccountID and amount are required to transfer", http.StatusBadRequest)
 	}
 
+	amountStr := request.URL.Query().Get("amount")
 	amount, err := strconv.ParseFloat(amountStr, 64)
 	if err != nil {
-		http.Error(writer, "invalid amount", http.StatusBadRequest)
+		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	err = store.Transfer(fromAccountID, toAccountID, amount)
@@ -122,6 +151,8 @@ func transferHandler(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(writer, "Transfered %.2f from Account: %s to Account: %s\n", amount, fromAccountID, toAccountID)
+	if _, err := fmt.Fprintf(writer, "Transfered %.2f from Account: %s to Account: %s\n", amount, fromAccountID, toAccountID); err != nil {
+		fmt.Printf("Error writing response: %s \n", err)
+	}
 
 }
