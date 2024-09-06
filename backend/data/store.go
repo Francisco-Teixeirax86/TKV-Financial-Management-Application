@@ -3,7 +3,9 @@ package data
 import (
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"sync"
+	"time"
 )
 
 type Store struct {
@@ -56,23 +58,34 @@ func (s *Store) UpdateBalance(accountID string, balance float64) error {
 }
 
 // Deposit updated the balance of accountID by depositing a new amount
-func (s *Store) Deposit(accountID string, amount float64) error {
-	if amount <= 0 {
-		return errors.New("deposit amount must be greater than zero")
-	}
+func (s *Store) Deposit(logStore *LogStore, accountID string, amount float64) error {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
 	if _, exists := s.accounts[accountID]; !exists {
 		return errors.New("account does not exist")
 	}
+	initalBalance := s.accounts[accountID]
+	s.accounts[accountID] = initalBalance + amount
+
+	//Create a transaction log entry
+	logEntry := TransactionLogEntry{
+		Timestamp:     time.Now(),
+		TransactionID: uuid.New().String(),
+		Type:          "Deposit",
+		AccountID:     accountID,
+		Amount:        amount,
+		ResultBalance: s.accounts[accountID],
+	}
+	logStore.AddLogEntry(logEntry)
 
 	s.accounts[accountID] += amount
 	return nil
 }
 
 // Withdraw update the balance of accountID by withdrawing funds
-func (s *Store) Withdraw(accountID string, amount float64) error {
+func (s *Store) Withdraw(logStore *LogStore, accountID string, amount float64) error {
 	if amount <= 0 {
 		return errors.New("withdraw amount must be greater than zero")
 	}
@@ -89,11 +102,22 @@ func (s *Store) Withdraw(accountID string, amount float64) error {
 		return errors.New("insufficient funds")
 	}
 
+	//Create a transaction log entry
+	logEntry := TransactionLogEntry{
+		Timestamp:     time.Now(),
+		TransactionID: uuid.New().String(),
+		Type:          "Withdrawal",
+		AccountID:     accountID,
+		Amount:        amount,
+		ResultBalance: s.accounts[accountID],
+	}
+	logStore.AddLogEntry(logEntry)
+
 	s.accounts[accountID] -= amount
 	return nil
 }
 
-func (s *Store) Transfer(fromAccountID, toAccountID string, amount float64) error {
+func (s *Store) Transfer(logStore *LogStore, fromAccountID, toAccountID string, amount float64) error {
 	if amount <= 0 {
 		return errors.New("transfer amount must be greater than zero")
 	}
@@ -116,8 +140,20 @@ func (s *Store) Transfer(fromAccountID, toAccountID string, amount float64) erro
 		return errors.New("insufficient funds in the source account")
 	}
 
-	s.accounts[toAccountID] = toBalance + amount
 	s.accounts[fromAccountID] = fromBalance - amount
+
+	s.accounts[toAccountID] = toBalance + amount
+
+	//Create a transaction log entry
+	logEntry := TransactionLogEntry{
+		Timestamp:     time.Now(),
+		TransactionID: uuid.New().String(),
+		Type:          "Transfer",
+		AccountID:     fromAccountID,
+		Amount:        amount,
+		ResultBalance: s.accounts[fromAccountID],
+	}
+	logStore.AddLogEntry(logEntry)
 
 	return nil
 }

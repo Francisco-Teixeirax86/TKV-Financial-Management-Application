@@ -6,14 +6,17 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 var store *data.Store
+var logStore *data.LogStore
 
 func main() {
 
 	//Initialize a new store
 	store = data.NewStore()
+	logStore = data.NewLogStore()
 
 	//TESTING - Create dummy accounts
 	store.CreateAccount("acc1", 1000)
@@ -23,6 +26,7 @@ func main() {
 	http.HandleFunc("/deposit", depositHandler)
 	http.HandleFunc("/withdraw", withdrawHandler)
 	http.HandleFunc("/transfer", transferHandler)
+	http.HandleFunc("/logs", getLogsHandler)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Welcome to the TKV Financial App!")
@@ -35,6 +39,13 @@ func main() {
 		return
 	}
 
+}
+
+func getLogsHandler(writer http.ResponseWriter, request *http.Request) {
+	for _, log := range logStore.Logs {
+		fmt.Fprintf(writer, "ID: %s, Type: %s, Account: %s, Amount: %.2f, Balance: %.2f, Time: %s\n",
+			log.TransactionID, log.Type, log.AccountID, log.Amount, log.ResultBalance, log.Timestamp.Format(time.RFC1123))
+	}
 }
 
 // parseAmount validate the amount input
@@ -73,7 +84,7 @@ func depositHandler(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	err = store.Deposit(accountID, amount)
+	err = store.Deposit(logStore, accountID, amount)
 	if err != nil {
 		http.Error(writer, "failed to update balance", http.StatusBadRequest)
 		return
@@ -118,7 +129,7 @@ func withdrawHandler(writer http.ResponseWriter, request *http.Request) {
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 	}
 
-	err = store.Withdraw(accountID, amount)
+	err = store.Withdraw(logStore, accountID, amount)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
@@ -145,7 +156,7 @@ func transferHandler(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	err = store.Transfer(fromAccountID, toAccountID, amount)
+	err = store.Transfer(logStore, fromAccountID, toAccountID, amount)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
