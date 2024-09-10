@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+var _ StoreInterface = &Store{}
+
 type Store struct {
 	mu       sync.RWMutex
 	accounts map[string]float64

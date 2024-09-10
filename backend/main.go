@@ -22,10 +22,10 @@ func main() {
 	store.CreateAccount("acc1", 1000)
 	store.CreateAccount("acc2", 160)
 
-	http.HandleFunc("/balance", getBalanceHandler)
-	http.HandleFunc("/deposit", depositHandler)
-	http.HandleFunc("/withdraw", withdrawHandler)
-	http.HandleFunc("/transfer", transferHandler)
+	http.HandleFunc("/balance", makeBalanceHandler(store))
+	http.HandleFunc("/deposit", makeDepositHandler(store))
+	http.HandleFunc("/withdraw", makeWithdrawHandler(store))
+	http.HandleFunc("/transfer", makeTransferHandler(store))
 	http.HandleFunc("/logs", getLogsHandler)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -67,103 +67,106 @@ func parseAmount(amountStr string) (float64, error) {
 	return amount, nil
 }
 
-// depositHandler Handler for the deposit request
-func depositHandler(writer http.ResponseWriter, request *http.Request) {
-	accountID := request.URL.Query().Get("accountID")
+func makeDepositHandler(store data.StoreInterface) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		accountID := request.URL.Query().Get("accountID")
 
-	if accountID == "" {
-		http.Error(writer, "AccountID and Amount are required to update a balance", http.StatusBadRequest)
-		return
-	}
+		if accountID == "" {
+			http.Error(writer, "AccountID and Amount are required to update a balance", http.StatusBadRequest)
+			return
+		}
 
-	amountStr := request.URL.Query().Get("amount")
-	amount, err := parseAmount(amountStr)
+		amountStr := request.URL.Query().Get("amount")
+		amount, err := parseAmount(amountStr)
 
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
-		return
-	}
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
 
-	err = store.Deposit(logStore, accountID, amount)
-	if err != nil {
-		http.Error(writer, "failed to update balance", http.StatusBadRequest)
-		return
-	}
+		err = store.Deposit(logStore, accountID, amount)
+		if err != nil {
+			http.Error(writer, "failed to update balance", http.StatusBadRequest)
+			return
+		}
 
-	if _, err := fmt.Fprintf(writer, "Account %s has been successfully updated with amoun %s", accountID, amount); err != nil {
-		fmt.Printf("Error writing response: %s \n", err)
+		if _, err := fmt.Fprintf(writer, "Account %s has been successfully updated with amount %.2f", accountID, amount); err != nil {
+			fmt.Printf("Error writing response: %s \n", err)
+		}
 	}
 }
 
-// getBalanceHandler Handler for the get balance request
-func getBalanceHandler(writer http.ResponseWriter, request *http.Request) {
-	accountID := request.URL.Query().Get("accountID")
-	if accountID == "" {
-		http.Error(writer, "Account ID is empty", http.StatusBadRequest)
-		return
-	}
+func makeBalanceHandler(store data.StoreInterface) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		accountID := request.URL.Query().Get("accountID")
+		if accountID == "" {
+			http.Error(writer, "Account ID is empty", http.StatusBadRequest)
+			return
+		}
 
-	balance, err := store.GetBalance(accountID)
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusNotFound)
-		return
-	}
+		balance, err := store.GetBalance(accountID)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusNotFound)
+			return
+		}
 
-	if _, err := fmt.Fprintf(writer, "Account %s, Balance %.2f \n", accountID, balance); err != nil {
-		fmt.Printf("Error writing response: %s \n", err)
+		if _, err := fmt.Fprintf(writer, "Account %s, Balance %.2f \n", accountID, balance); err != nil {
+			fmt.Printf("Error writing response: %s \n", err)
+		}
 	}
-
 }
 
-func withdrawHandler(writer http.ResponseWriter, request *http.Request) {
-	accountID := request.URL.Query().Get("accountID")
+func makeWithdrawHandler(store data.StoreInterface) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		accountID := request.URL.Query().Get("accountID")
 
-	if accountID == "" {
-		http.Error(writer, "AccountID and Amount are required to withdraw a balance", http.StatusBadRequest)
-		return
+		if accountID == "" {
+			http.Error(writer, "AccountID and Amount are required to withdraw a balance", http.StatusBadRequest)
+			return
+		}
+
+		amountStr := request.URL.Query().Get("amount")
+		amount, err := parseAmount(amountStr)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+		}
+
+		err = store.Withdraw(logStore, accountID, amount)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if _, err := fmt.Fprintf(writer, "Withrew %.2f from Account: %s \n", amount, accountID); err != nil {
+			fmt.Printf("Error writing response: %s \n", err)
+		}
 	}
-
-	amountStr := request.URL.Query().Get("amount")
-	amount, err := parseAmount(amountStr)
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
-	}
-
-	err = store.Withdraw(logStore, accountID, amount)
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if _, err := fmt.Fprintf(writer, "Withrew %.2f from Account: %s \n", amount, accountID); err != nil {
-		fmt.Printf("Error writing response: %s \n", err)
-	}
-
 }
 
-func transferHandler(writer http.ResponseWriter, request *http.Request) {
-	fromAccountID := request.URL.Query().Get("fromAccountID")
-	toAccountID := request.URL.Query().Get("toAccountID")
+func makeTransferHandler(store data.StoreInterface) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		fromAccountID := request.URL.Query().Get("fromAccountID")
+		toAccountID := request.URL.Query().Get("toAccountID")
 
-	if fromAccountID == "" || toAccountID == "" {
-		http.Error(writer, "fromAccountID, toAccountID and amount are required to transfer", http.StatusBadRequest)
+		if fromAccountID == "" || toAccountID == "" {
+			http.Error(writer, "fromAccountID, toAccountID and amount are required to transfer", http.StatusBadRequest)
+		}
+
+		amountStr := request.URL.Query().Get("amount")
+		amount, err := strconv.ParseFloat(amountStr, 64)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		err = store.Transfer(logStore, fromAccountID, toAccountID, amount)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if _, err := fmt.Fprintf(writer, "Transfered %.2f from Account: %s to Account: %s\n", amount, fromAccountID, toAccountID); err != nil {
+			fmt.Printf("Error writing response: %s \n", err)
+		}
 	}
-
-	amountStr := request.URL.Query().Get("amount")
-	amount, err := strconv.ParseFloat(amountStr, 64)
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	err = store.Transfer(logStore, fromAccountID, toAccountID, amount)
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if _, err := fmt.Fprintf(writer, "Transfered %.2f from Account: %s to Account: %s\n", amount, fromAccountID, toAccountID); err != nil {
-		fmt.Printf("Error writing response: %s \n", err)
-	}
-
 }
