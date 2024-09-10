@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package distributedkv;
+
+option go_package = "/distributedkv";
+
+
+service NodeService {
+    rpc SendHeartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+    rpc RequestVote(VoteRequest) returns (VoteResponse);
+    rpc AppendEntries(EntryRequest) returns (EntryResponse);
+}
+
+// Heartbeat for leader election and node check-in
+
+
+
+
+message HeartbeatRequest {
+    string leaderId = 1;
+    int64 term = 2;
+}
+
+message HeartbeatResponse {
+    bool success = 1;
+    int64 term = 2;
+}
+
+// Voting for leader election
+message VoteRequest {
+    string candidateId = 1;
+    int64 term = 2;
+    int64 lastLogIndex = 3;
+    int64 lastLogTerm = 4;
+}
+  
+message VoteResponse {
+    bool voteGranted = 1;
+    int64 term = 2;
+}
+  
+// Entries for data replication
+message EntryRequest {
+    string leaderId = 1;
+    int64 term = 2;
+    repeated LogEntry entries = 3;
+    int64 leaderCommit = 4;
+}
+  
+message EntryResponse {
+    bool success = 1;
+    int64 term = 2;
+}
+  
+message LogEntry {
+    string value = 1;
+    int64 term = 2;
+}

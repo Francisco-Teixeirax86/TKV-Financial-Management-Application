@@ -1,0 +1,7 @@
+Heterogeneous architecture
+
+Leader Nodes: Manage all write operations, orchestrate the consensus process, and distribute updates to follower nodes.
+
+Follower Nodes: Handle read operations primarily, participate in the consensus process, and maintain data replicas.
+
+Arbiter Nodes: Participate in the consensus process to help achieve a majority decision but do not store any data.
