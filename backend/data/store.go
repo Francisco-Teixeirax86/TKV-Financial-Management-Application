@@ -60,7 +60,7 @@ func (s *Store) UpdateBalance(accountID string, balance float64) error {
 }
 
 // Deposit updated the balance of accountID by depositing a new amount
-func (s *Store) Deposit(logStore *LogStore, accountID string, amount float64) error {
+func (s *Store) Deposit(transactionLogStore *TransactionLogStore, accountID string, amount float64) error {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -80,14 +80,14 @@ func (s *Store) Deposit(logStore *LogStore, accountID string, amount float64) er
 		Amount:        amount,
 		ResultBalance: s.accounts[accountID],
 	}
-	logStore.AddLogEntry(logEntry)
+	transactionLogStore.AddTransactionLog(logEntry)
 
 	s.accounts[accountID] += amount
 	return nil
 }
 
 // Withdraw update the balance of accountID by withdrawing funds
-func (s *Store) Withdraw(logStore *LogStore, accountID string, amount float64) error {
+func (s *Store) Withdraw(transactionLogStore *TransactionLogStore, accountID string, amount float64) error {
 	if amount <= 0 {
 		return errors.New("withdraw amount must be greater than zero")
 	}
@@ -113,13 +113,13 @@ func (s *Store) Withdraw(logStore *LogStore, accountID string, amount float64) e
 		Amount:        amount,
 		ResultBalance: s.accounts[accountID],
 	}
-	logStore.AddLogEntry(logEntry)
+	transactionLogStore.AddTransactionLog(logEntry)
 
 	s.accounts[accountID] -= amount
 	return nil
 }
 
-func (s *Store) Transfer(logStore *LogStore, fromAccountID, toAccountID string, amount float64) error {
+func (s *Store) Transfer(transactionLogStore *TransactionLogStore, fromAccountID, toAccountID string, amount float64) error {
 	if amount <= 0 {
 		return errors.New("transfer amount must be greater than zero")
 	}
@@ -155,7 +155,7 @@ func (s *Store) Transfer(logStore *LogStore, fromAccountID, toAccountID string, 
 		Amount:        amount,
 		ResultBalance: s.accounts[fromAccountID],
 	}
-	logStore.AddLogEntry(logEntry)
+	transactionLogStore.AddTransactionLog(logEntry)
 
 	return nil
 }

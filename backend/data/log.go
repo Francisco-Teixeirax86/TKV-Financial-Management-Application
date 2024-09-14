@@ -1,27 +1,26 @@
 package data
 
-import "time"
-
-type TransactionLogEntry struct {
-	Timestamp     time.Time
-	TransactionID string
-	Type          string
-	AccountID     string
-	Amount        float64
-	ResultBalance float64
+type LogEntry struct {
+	Term    int
+	Command string
 }
 
 type LogStore struct {
-	Logs []TransactionLogEntry
+	Logs []LogEntry
 }
 
 func NewLogStore() *LogStore {
 	return &LogStore{
-		Logs: make([]TransactionLogEntry, 0),
+		Logs: make([]LogEntry, 0),
 	}
 }
 
 // AddLogEntry adds a new transaction log entry to the log store
-func (ls *LogStore) AddLogEntry(entry TransactionLogEntry) {
+func (ls *LogStore) AddLogEntry(entry LogEntry) {
 	ls.Logs = append(ls.Logs, entry)
+}
+
+// GetLogs returns the current list of logs
+func (ls *LogStore) GetLogs() []LogEntry {
+	return ls.Logs
 }

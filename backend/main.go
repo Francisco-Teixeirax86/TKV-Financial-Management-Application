@@ -11,12 +11,14 @@ import (
 
 var store *data.Store
 var logStore *data.LogStore
+var transactionLogStore *data.TransactionLogStore
 
 func main() {
 
 	//Initialize a new store
 	store = data.NewStore()
 	logStore = data.NewLogStore()
+	transactionLogStore = data.NewTransactionLogStore()
 
 	//TESTING - Create dummy accounts
 	store.CreateAccount("acc1", 1000)
@@ -42,7 +44,7 @@ func main() {
 }
 
 func getLogsHandler(writer http.ResponseWriter, request *http.Request) {
-	for _, log := range logStore.Logs {
+	for _, log := range transactionLogStore.Transactions {
 		fmt.Fprintf(writer, "ID: %s, Type: %s, Account: %s, Amount: %.2f, Balance: %.2f, Time: %s\n",
 			log.TransactionID, log.Type, log.AccountID, log.Amount, log.ResultBalance, log.Timestamp.Format(time.RFC1123))
 	}
@@ -84,7 +86,7 @@ func makeDepositHandler(store data.StoreInterface) http.HandlerFunc {
 			return
 		}
 
-		err = store.Deposit(logStore, accountID, amount)
+		err = store.Deposit(transactionLogStore, accountID, amount)
 		if err != nil {
 			http.Error(writer, "failed to update balance", http.StatusBadRequest)
 			return
@@ -131,7 +133,7 @@ func makeWithdrawHandler(store data.StoreInterface) http.HandlerFunc {
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 		}
 
-		err = store.Withdraw(logStore, accountID, amount)
+		err = store.Withdraw(transactionLogStore, accountID, amount)
 		if err != nil {
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return
@@ -159,7 +161,7 @@ func makeTransferHandler(store data.StoreInterface) http.HandlerFunc {
 			return
 		}
 
-		err = store.Transfer(logStore, fromAccountID, toAccountID, amount)
+		err = store.Transfer(transactionLogStore, fromAccountID, toAccountID, amount)
 		if err != nil {
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return
